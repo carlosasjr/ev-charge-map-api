@@ -42,10 +42,5 @@ RUN pecl install -o -f redis \
 # Set working directory
 WORKDIR /var/www
 
-#cron
-COPY ./docker/crontab.sh /opt/bin/crontab.sh
-RUN chmod +x /opt/bin/crontab.sh
-
-CMD ["/opt/bin/crontab.sh"]
 
 USER $user
