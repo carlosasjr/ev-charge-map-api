@@ -1,0 +1,103 @@
+version: "3.7"
+
+services:
+  # image project
+  app:
+    container_name: app-maps
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: especializati/laravel9-app
+    restart: unless-stopped
+    working_dir: /var/www/
+    volumes:
+      - ./:/var/www
+    depends_on:
+      - redis
+    networks:
+      - api-app
+
+  # nginx
+  nginx:
+    container_name: app-maps-nginx
+    image: nginx:alpine
+    restart: unless-stopped
+    ports:
+      - "8000:80"
+    volumes:
+      - ./:/var/www
+      - ./docker/nginx/:/etc/nginx/conf.d/
+    networks:
+      - api-app
+
+  # db mysql
+  mysql:
+    container_name: app-maps-mysql
+    image: mysql:5.7.22
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: ${DB_DATABASE}
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+      MYSQL_USER: ${DB_USERNAME}
+    volumes:
+      - ./.docker/mysql/dbdata:/var/lib/mysql
+    ports:
+      - "3388:3306"
+    networks:
+      - api-app
+
+  phpmyadmin:
+    container_name: app-maps-phpmyadmin
+    image: phpmyadmin/phpmyadmin:latest
+    restart: always
+    ports:
+      - 8081:80
+    links:
+      - mysql
+    environment:
+      - PMA_ARBITRARY=1
+      - UPLOAD_LIMIT=1G
+    networks:
+      - api-app
+
+  # queue
+  queue:
+    container_name: app-maps-queue
+    image: especializati/laravel9-app
+    restart: unless-stopped
+    command: "php artisan queue:work --timeout=180"
+    volumes:
+      - ./:/var/www
+    depends_on:
+      - redis
+      - app
+    networks:
+      - api-app
+
+  schedule:
+    container_name: app-maps-schedule
+    image: especializati/laravel9-app
+    restart: unless-stopped
+    command: "php artisan schedule:work"
+    volumes:
+      - ./:/var/www
+    depends_on:
+      - redis
+      - app
+    networks:
+      - api-app
+
+  # redis
+  redis:
+    container_name: app-maps-redis
+    image: redis:alpine
+    command: --port 6379
+    ports:
+      - "6379:6379"
+    networks:
+      - api-app
+
+networks:
+  api-app:
+    driver: bridge
