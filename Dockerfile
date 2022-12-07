@@ -1,4 +1,4 @@
-FROM php:8.0-fpm
+FROM php:8.1-fpm
 
 # OPCache with JIT
 COPY ./docker/opcache.ini /usr/local/etc/php/conf.d/
